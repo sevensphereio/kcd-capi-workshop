@@ -1,0 +1,6 @@
+apiVersion: v2
+name: capi-fleet
+description: A Helm chart to deploy multiple CAPI clusters
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

@@ -1,0 +1,22 @@
+clusters:
+  - name: cluster-blue
+    k8sVersion: v1.31.0
+    workerCount: 1
+    # Labels for CNI and other selections
+    labels:
+      cni: calico
+      env: dev
+      
+  - name: cluster-green
+    k8sVersion: v1.31.0
+    workerCount: 1
+    labels:
+      cni: calico
+      env: staging
+
+  - name: cluster-red
+    k8sVersion: v1.31.0
+    workerCount: 1
+    labels:
+      cni: calico
+      env: prod
