@@ -1,6 +1,6 @@
 {{- range .Values.clusters }}
 ---
-apiVersion: cluster.x-k8s.io/v1beta2
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: {{ .name }}
@@ -16,23 +16,23 @@ spec:
       cidrBlocks: ["192.168.0.0/16"]
     serviceDomain: "cluster.local"
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: DockerCluster
     name: {{ .name }}
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     kind: KubeadmControlPlane
     name: {{ .name }}-cp
 
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerCluster
 metadata:
   name: {{ .name }}
   namespace: default
 
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
 metadata:
   name: {{ .name }}-cp
@@ -42,7 +42,7 @@ spec:
   replicas: 1
   machineTemplate:
     infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: DockerMachineTemplate
       name: {{ .name }}-cp
   kubeadmConfigSpec:
@@ -58,7 +58,7 @@ spec:
           eviction-hard: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
 
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
 metadata:
   name: {{ .name }}-cp
@@ -71,7 +71,7 @@ spec:
           hostPath: /var/run/docker.sock
 
 ---
-apiVersion: cluster.x-k8s.io/v1beta2
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
 metadata:
   name: {{ .name }}-md-0
@@ -88,16 +88,16 @@ spec:
       version: {{ .k8sVersion }}
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
           kind: KubeadmConfigTemplate
           name: {{ .name }}-md-0
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: DockerMachineTemplate
         name: {{ .name }}-md-0
 
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
 metadata:
   name: {{ .name }}-md-0
@@ -107,7 +107,7 @@ spec:
     spec: {}
 
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
   name: {{ .name }}-md-0
