@@ -31,18 +31,10 @@ else
 fi
 
 echo -e "${BLUE}[1/5] Installation de Kubectl ($KUBECTL_VERSION)...${NC}"
-# curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
-# curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-# chmod +x kubectl
-# mv kubectl /usr/local/bin/
-#echo -e "${GREEN}Kubectl installé.${NC}"
-sudo apt-get install -y apt-transport-https ca-certificates curl gnupg
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.34/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-sudo chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg # allow unprivileged APT programs to read this keyring
-echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.34/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
-sudo chmod 644 /etc/apt/sources.list.d/kubernetes.list   # helps tools such as command-not-found to work correctly
-sudo apt-get update
-sudo apt-get install -y kubectl
+curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl"
+chmod +x kubectl
+mv kubectl /usr/local/bin/
+echo -e "${GREEN}Kubectl installé.${NC}"
 
 echo -e "${BLUE}[2/5] Installation de Kind ($KIND_VERSION)...${NC}"
 curl -Lo ./kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${ARCH}"
