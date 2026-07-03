@@ -46,7 +46,7 @@ kind-capi-mgmt
 ## Step 1: Define the Cluster
 
 ### 1. Configuration Variables
-`clusterctl` uses these environment variables to fill in the templates. We define the version and size of our target cluster here.
+These describe the cluster we're about to create — its Kubernetes version and size. They're already baked into the shipped `first-capi-cluster.yaml`; we list them here so the manifest's values are explicit (and so you have them handy if you later regenerate to a different filename).
 
 ```bash
 # The Kubernetes version for the new cluster
@@ -59,21 +59,25 @@ export WORKER_MACHINE_COUNT=1
 
 
 
-### 2. Generate Manifest
-This command renders a complete Kubernetes YAML manifest based on the `docker` infrastructure provider template. We pipe (`>`) the output to a file instead of applying it directly, so we can inspect it.
+### 2. Inspect the Manifest
+This module ships a ready-to-apply manifest — **`first-capi-cluster.yaml`** — already rendered for the values above (1 control plane, 1 worker, `v1.31.0`). Open it and read through the objects before applying:
 
 ```bash
-clusterctl generate cluster first-capi-cluster \
-  --flavor development-topology \
-  --kubernetes-version "${KUBERNETES_VERSION}" \
-  --control-plane-machine-count="${CONTROL_PLANE_MACHINE_COUNT}" \
-  --worker-machine-count="${WORKER_MACHINE_COUNT}" \
-  > first-capi-cluster.yaml
+less first-capi-cluster.yaml    # or open it in your editor
 ```
-*No output is expected (it goes to the file).*
+
+> **Why it's shipped pre-generated (CAPD v1.11.1).** You would normally render
+> this yourself with `clusterctl generate cluster ... --flavor development-topology`.
+> However, the Docker infrastructure provider release **v1.11.1 does not publish**
+> a `development-topology` template, so that command fails with
+> `failed to read "cluster-template-development-topology.yaml"` — and because it
+> writes with `> first-capi-cluster.yaml`, running it would also **overwrite the
+> shipped manifest with an empty file**. We therefore provide the equivalent
+> manifest in the repo. (If you want to regenerate for other flavors later, write
+> to a *different* filename so you never clobber this one.)
 
 ### 3. Apply (Start Provisioning)
-We submit the generated manifest to the Management Cluster. The `development-topology` flavor is **Classy** (ClusterClass-based): it creates a reusable `ClusterClass` (`quick-start`) plus the template objects it references, and a single topology-based `Cluster`. The controllers then expand that topology into the underlying `KubeadmControlPlane` / `MachineDeployment` resources for you and start creating Docker containers.
+We submit the manifest to the Management Cluster. It is **Classy** (ClusterClass-based): it creates a reusable `ClusterClass` (`quick-start`) plus the template objects it references, and a single topology-based `Cluster`. The controllers then expand that topology into the underlying `KubeadmControlPlane` / `MachineDeployment` resources for you and start creating Docker containers.
 
 ```bash
 kubectl apply -f first-capi-cluster.yaml
