@@ -64,7 +64,7 @@ This command renders a complete Kubernetes YAML manifest based on the `docker` i
 
 ```bash
 clusterctl generate cluster first-capi-cluster \
-  --flavor development \
+  --flavor development-topology \
   --kubernetes-version "${KUBERNETES_VERSION}" \
   --control-plane-machine-count="${CONTROL_PLANE_MACHINE_COUNT}" \
   --worker-machine-count="${WORKER_MACHINE_COUNT}" \
@@ -73,20 +73,21 @@ clusterctl generate cluster first-capi-cluster \
 *No output is expected (it goes to the file).*
 
 ### 3. Apply (Start Provisioning)
-We submit the generated manifest to the Management Cluster. This creates the CAPI Custom Resources (`Cluster`, `MachineDeployment`), triggering the controllers to start creating Docker containers.
+We submit the generated manifest to the Management Cluster. The `development-topology` flavor is **Classy** (ClusterClass-based): it creates a reusable `ClusterClass` (`quick-start`) plus the template objects it references, and a single topology-based `Cluster`. The controllers then expand that topology into the underlying `KubeadmControlPlane` / `MachineDeployment` resources for you and start creating Docker containers.
 
 ```bash
 kubectl apply -f first-capi-cluster.yaml
 ```
 **Example Output:**
 ```text
+clusterclass.cluster.x-k8s.io/quick-start created
+dockerclustertemplate.infrastructure.cluster.x-k8s.io/quick-start-cluster created
+kubeadmcontrolplanetemplate.controlplane.cluster.x-k8s.io/quick-start-control-plane created
+dockermachinetemplate.infrastructure.cluster.x-k8s.io/quick-start-control-plane created
+dockermachinetemplate.infrastructure.cluster.x-k8s.io/quick-start-default-worker-machinetemplate created
+dockermachinepooltemplate.infrastructure.cluster.x-k8s.io/quick-start-default-worker-machinepooltemplate created
+kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io/quick-start-default-worker-bootstraptemplate created
 cluster.cluster.x-k8s.io/first-capi-cluster created
-dockercluster.infrastructure.cluster.x-k8s.io/first-capi-cluster created
-kubeadmcontrolplane.controlplane.cluster.x-k8s.io/first-capi-cluster-control-plane created
-dockermachinetemplate.infrastructure.cluster.x-k8s.io/first-capi-cluster-control-plane created
-machinedeployment.cluster.x-k8s.io/first-capi-cluster-md-0 created
-dockermachinetemplate.infrastructure.cluster.x-k8s.io/first-capi-cluster-md-0 created
-kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io/first-capi-cluster-md-0 created
 ```
 
 ---
@@ -225,4 +226,9 @@ Your cluster has no storage. Install the 'local-path-provisioner' manually on th
 *Hint: Check the hints file via the request tool.*
 
 ---
+## 🔮 What's Next?
+You have built a cluster manually. It was tedious, right?
+In **Module 03**, we will delete this cluster and replace it with a **Fleet of 3 Clusters** using Helm automation.
+We will also learn how to automatically inject CNI (Calico) so you never have to run `kubectl apply` manually again.
+
 [Go to Module 03 ->](../module-03-templating/)

@@ -1,0 +1,38 @@
+title: "Management Cluster Setup"
+order: 1
+difficulty: beginner
+estimated_minutes: 30
+description: "Set up a Kind-based management cluster with CAPI controllers"
+prerequisites: []
+tags: [kind, capi, management-cluster]
+
+stages:
+  - name: "Prerequisites"
+    on_fail: pending
+    checks:
+      - name: "kind CLI installed"
+        type: tool_exists
+        tool: kind
+      - name: "Management cluster context exists"
+        type: context_exists
+        context: kind-capi-mgmt
+
+  - name: "CAPI Initialization"
+    on_fail: in_progress
+    checks:
+      - name: "CAPI/CAPD pods created"
+        type: pods_running
+        pattern: "capi|capd|cert-manager"
+        min_count: 1
+
+  - name: "CAPI Ready"
+    on_fail: in_progress
+    checks:
+      - name: "CAPI pods running"
+        type: pods_running
+        pattern: "capi|capd|cert-manager"
+        grep_status: Running
+        min_count: 8
+      - name: "No CrashLoopBackOff pods"
+        type: script
+        run: "! kubectl get pods -A | grep CrashLoopBackOff"

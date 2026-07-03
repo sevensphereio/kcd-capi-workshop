@@ -1,6 +1,6 @@
 {{- range .Values.clusters }}
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: {{ .name }}
@@ -16,23 +16,23 @@ spec:
       cidrBlocks: ["192.168.0.0/16"]
     serviceDomain: "cluster.local"
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: DockerCluster
     name: {{ .name }}
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    apiGroup: controlplane.cluster.x-k8s.io
     kind: KubeadmControlPlane
     name: {{ .name }}-cp
 
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerCluster
 metadata:
   name: {{ .name }}
   namespace: default
 
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlane
 metadata:
   name: {{ .name }}-cp
@@ -41,24 +41,27 @@ spec:
   version: {{ .k8sVersion }}
   replicas: 1
   machineTemplate:
-    infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-      kind: DockerMachineTemplate
-      name: {{ .name }}-cp
+    spec:
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: DockerMachineTemplate
+        name: {{ .name }}-cp
   kubeadmConfigSpec:
     clusterConfiguration:
       controllerManager:
         extraArgs:
-          enable-hostpath-provisioner: "true"
+        - name: enable-hostpath-provisioner
+          value: "true"
       apiServer:
         certSANs: [localhost, 127.0.0.1]
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          eviction-hard: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
+        - name: eviction-hard
+          value: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
 
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachineTemplate
 metadata:
   name: {{ .name }}-cp
@@ -71,7 +74,7 @@ spec:
           hostPath: /var/run/docker.sock
 
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineDeployment
 metadata:
   name: {{ .name }}-md-0
@@ -88,16 +91,16 @@ spec:
       version: {{ .k8sVersion }}
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiGroup: bootstrap.cluster.x-k8s.io
           kind: KubeadmConfigTemplate
           name: {{ .name }}-md-0
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiGroup: infrastructure.cluster.x-k8s.io
         kind: DockerMachineTemplate
         name: {{ .name }}-md-0
 
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: DockerMachineTemplate
 metadata:
   name: {{ .name }}-md-0
@@ -107,7 +110,7 @@ spec:
     spec: {}
 
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: {{ .name }}-md-0
@@ -118,5 +121,6 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            eviction-hard: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
+          - name: eviction-hard
+            value: "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
 {{- end }}

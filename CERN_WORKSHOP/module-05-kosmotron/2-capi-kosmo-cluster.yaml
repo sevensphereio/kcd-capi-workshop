@@ -1,0 +1,119 @@
+# Hybrid cluster: a k0smotron HOSTED control plane (runs as pods) driving REAL
+# CAPI workers (CAPD containers). The CAPI `Cluster` wires the two together:
+#   controlPlaneRef  -> K0smotronControlPlane  (the "brain", runs as pods)
+#   infrastructureRef -> DockerCluster         (CAPD infra for the workers)
+#
+# NOTE on CAPI v1.11: standalone objects use the v1beta2 API, and object
+# references use `apiGroup:` (contract-versioned, no version) instead of
+# `apiVersion:`. Worker nodes bootstrap with k0s (K0sWorkerConfigTemplate),
+# not kubeadm, because the control plane is k0s.
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: kosmo-hybrid
+  namespace: default
+  labels:
+    cluster.x-k8s.io/cluster-name: kosmo-hybrid
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["10.128.0.0/12"]
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+    serviceDomain: "cluster.local"
+
+  # CAPI points to k0smotron for the Control Plane (hosted, runs as pods)
+  controlPlaneRef:
+    apiGroup: controlplane.cluster.x-k8s.io
+    kind: K0smotronControlPlane
+    name: kosmo-hybrid-cp
+
+  # CAPI points to Docker (CAPD) for the worker infrastructure
+  infrastructureRef:
+    apiGroup: infrastructure.cluster.x-k8s.io
+    kind: DockerCluster
+    name: kosmo-hybrid
+
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: K0smotronControlPlane
+metadata:
+  name: kosmo-hybrid-cp
+  namespace: default
+spec:
+  # k0s version pinned to a release that has BOTH a published container image
+  # (quay.io/k0sproject/k0s:v1.31.14-k0s.0) AND a GitHub binary the workers
+  # download. NOTE: some patch versions (e.g. v1.31.13) ship an image but no
+  # matching GitHub release, so the worker download 404s — keep CP and worker
+  # (K0sWorkerConfigTemplate below) on the SAME, fully-published version.
+  version: v1.31.14-k0s.0
+  service:
+    type: NodePort
+    # Distinct NodePorts so this hybrid CP does not collide with tenant-a/-b.
+    apiPort: 30445
+    konnectivityPort: 30134
+
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: DockerCluster
+metadata:
+  name: kosmo-hybrid
+  namespace: default
+
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: MachineDeployment
+metadata:
+  name: kosmo-workers
+  namespace: default
+  labels:
+    cluster.x-k8s.io/cluster-name: kosmo-hybrid
+spec:
+  clusterName: kosmo-hybrid
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: kosmo-hybrid
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: kosmo-hybrid
+    spec:
+      clusterName: kosmo-hybrid
+      version: v1.31.0
+      bootstrap:
+        configRef:
+          apiGroup: bootstrap.cluster.x-k8s.io
+          kind: K0sWorkerConfigTemplate
+          name: kosmo-workers-boot
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: DockerMachineTemplate
+        name: kosmo-workers-infra
+
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
+kind: DockerMachineTemplate
+metadata:
+  name: kosmo-workers-infra
+  namespace: default
+spec:
+  template:
+    spec:
+      # Pas de preLoadImages pour gagner du temps
+      extraMounts:
+        - containerPath: /var/run/docker.sock
+          hostPath: /var/run/docker.sock
+
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: K0sWorkerConfigTemplate
+metadata:
+  name: kosmo-workers-boot
+  namespace: default
+spec:
+  template:
+    spec:
+      # Match the control-plane k0s version. Uses the '+k0s.0' build-metadata
+      # form (the GitHub release tag), whereas the image uses '-k0s.0'.
+      version: v1.31.14+k0s.0

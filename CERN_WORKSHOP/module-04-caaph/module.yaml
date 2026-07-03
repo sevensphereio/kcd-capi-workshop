@@ -1,0 +1,54 @@
+title: "Cluster API Add-on Provider Helm"
+order: 4
+difficulty: beginner
+estimated_minutes: 30
+description: "Deploy add-ons to workload clusters using CAAPH (HelmChartProxy)"
+prerequisites: [module-03-templating]
+tags: [caaph, helmchartproxy, addons]
+
+stages:
+  - name: "Prerequisites"
+    on_fail: pending
+    checks:
+      - name: "helm CLI installed"
+        type: tool_exists
+        tool: helm
+      - name: "Management context active"
+        type: context_exists
+        context: kind-capi-mgmt
+      - name: "CAAPH CRDs installed"
+        type: crds_exist
+        crd_names:
+          - helmchartproxies.addons.cluster.x-k8s.io
+          - helmreleaseproxies.addons.cluster.x-k8s.io
+
+  - name: "HelmChartProxies declared"
+    on_fail: in_progress
+    checks:
+      - name: "metrics-server-blue HelmChartProxy"
+        type: resource_exists
+        kind: helmchartproxy
+        resource_name: metrics-server-blue
+      - name: "local-path-blue HelmChartProxy"
+        type: resource_exists
+        kind: helmchartproxy
+        resource_name: local-path-blue
+
+  - name: "Add-ons reconciled on cluster-blue"
+    on_fail: in_progress
+    checks:
+      - name: "kubeconfig for cluster-blue cached"
+        type: ensure_kubeconfig
+        cluster_name: cluster-blue
+        output_file: cluster-blue.kubeconfig
+      - name: "metrics-server pods running on cluster-blue"
+        type: remote_pods
+        kubeconfig: cluster-blue.kubeconfig
+        namespace: kube-system
+        selector: "app.kubernetes.io/name=metrics-server"
+        min_count: 1
+      - name: "local-path StorageClass exists on cluster-blue"
+        type: remote_resource
+        kubeconfig: cluster-blue.kubeconfig
+        kind: storageclass
+        resource_name: local-path

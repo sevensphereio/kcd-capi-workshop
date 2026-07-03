@@ -1,0 +1,29 @@
+# gold-hcp.yaml — a kosmotron (k0smotron) hosted control plane for the gold env.
+#
+# This is the always-on "module-05 kosmotron" leverage of the capstone. Unlike
+# the CAPD gold-01/gold-02 workload clusters (which have real worker VMs/pods),
+# `gold-hcp` is a k0smotron **standalone** `Cluster` in the `k0smotron.io` API
+# group: applying it creates a StatefulSet (a k0s controller + etcd) that runs
+# as PODS on the management cluster — a hosted control plane with no dedicated
+# workers. It mirrors the pattern from module-05-kosmotron/1-multi-hcp.yaml.
+#
+# Deploy it with:
+#   kubectl apply -f gold-hcp.yaml
+#
+# The generated pods are named `kmc-gold-hcp-*` in the `default` namespace; the
+# capstone validate.sh asserts the Cluster exists and those pods are Running.
+apiVersion: k0smotron.io/v1beta2
+kind: Cluster
+metadata:
+  name: gold-hcp
+  namespace: default
+spec:
+  service:
+    type: NodePort
+    # Explicit, distinct NodePorts. Every k0smotron hosted control plane exposes
+    # its API via a NodePort on the SAME management node, so it must not reuse a
+    # port already taken by another HCP. The module-05 tenants use 30443/30132,
+    # 30444/30133 and the hybrid CP 30445/30134; gold-hcp takes its own pair so
+    # it comes up even if a student has not yet torn down module-05.
+    apiPort: 30446
+    konnectivityPort: 30135

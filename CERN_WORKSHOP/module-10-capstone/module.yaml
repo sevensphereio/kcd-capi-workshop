@@ -1,0 +1,63 @@
+title: "Capstone Challenge"
+order: 10
+difficulty: advanced
+estimated_minutes: 60
+description: "Golden fleet with HA control planes, metrics, AI workloads, and a kosmotron hosted control plane; optionally observed/policed/managed when those modules are enabled."
+prerequisites: [module-04-caaph, module-05-kosmotron, module-06-ai]
+tags: [capstone, fleet, ha, metrics-server, ollama]
+
+checks:
+  - name: "Golden fleet clusters (gold-01, gold-02)"
+    type: resource_count
+    kind: clusters
+    pattern: "gold-01|gold-02"
+    min_count: 2
+
+  - name: "HA Control Plane (3 replicas)"
+    type: field_equals
+    kind: kubeadmcontrolplane
+    resource_name: gold-01-cp
+    jsonpath: "{.spec.replicas}"
+    expected: "3"
+
+  - name: "Metrics Server HelmChartProxy for the gold fleet"
+    type: script
+    run: |
+      kubectl get helmchartproxies -o json | jq -e '.items[] | select(.spec.clusterSelector.matchLabels.env=="gold") | select(.spec.chartName=="metrics-server")'
+
+  - name: "Ollama running on gold-01"
+    type: script
+    run: |
+      if [ ! -f gold-01.kubeconfig ]; then
+        clusterctl get kubeconfig gold-01 > gold-01.kubeconfig 2>/dev/null
+      fi
+      if [ -f gold-01.kubeconfig ]; then
+        kubectl --kubeconfig=gold-01.kubeconfig get pods -n ollama-operator-system | grep Running
+      else
+        false
+      fi
+
+  - name: "Kosmotron hosted control plane for the gold env (gold-hcp)"
+    type: script
+    run: |
+      # gold-hcp is a k0smotron standalone Cluster (hosted CP = pods, no workers needed)
+      kubectl get clusters.k0smotron.io gold-hcp -n default >/dev/null 2>&1 && \
+      kubectl get pods -n default | grep -E 'kmc-gold-hcp' | grep -q Running
+
+  - name: "Gold fleet observed by dNation (optional: observability)"
+    type: script
+    run: |
+      if [ -f ../module-07-observability/.disabled ]; then exit 0; fi
+      kubectl get pods -n monitoring | grep -q Running
+
+  - name: "Sveltos profile targets the gold env (optional: sveltos)"
+    type: script
+    run: |
+      if [ -f ../module-08-sveltos/.disabled ]; then exit 0; fi
+      kubectl get clusterprofiles -A 2>/dev/null | grep -q .
+
+  - name: "KCM manages the gold fleet (optional: kordent)"
+    type: script
+    run: |
+      if [ -f ../module-09-kordent/.disabled ]; then exit 0; fi
+      kubectl get pods -n kcm-system 2>/dev/null | grep -q Running

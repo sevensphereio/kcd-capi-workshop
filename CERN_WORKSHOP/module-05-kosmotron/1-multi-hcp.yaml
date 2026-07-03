@@ -1,0 +1,36 @@
+# Two hosted control planes ("tenants") on the management cluster.
+#
+# "Kosmotron" in this workshop is the real, open-source **k0smotron** project
+# (https://docs.k0smotron.io). In k0smotron a hosted control plane is a
+# `Cluster` object in the `k0smotron.io` API group: applying it creates a
+# StatefulSet (a k0s controller + etcd) that runs as PODS on the management
+# cluster — no dedicated VMs. That is how you pack many control planes onto a
+# single management node.
+#
+# IMPORTANT: every hosted control plane exposes its API via a NodePort on the
+# SAME management node, so each one needs a DISTINCT apiPort/konnectivityPort.
+# If two HCPs default to the same NodePort (30443/30132), only the first gets
+# its Service created — the others fail with "provided port is already
+# allocated" and never start. We give tenant-a and tenant-b (and the hybrid
+# control plane in 2-capi-kosmo-cluster.yaml) their own ports.
+apiVersion: k0smotron.io/v1beta2
+kind: Cluster
+metadata:
+  name: tenant-a
+  namespace: default
+spec:
+  service:
+    type: NodePort
+    apiPort: 30443
+    konnectivityPort: 30132
+---
+apiVersion: k0smotron.io/v1beta2
+kind: Cluster
+metadata:
+  name: tenant-b
+  namespace: default
+spec:
+  service:
+    type: NodePort
+    apiPort: 30444
+    konnectivityPort: 30133

@@ -1,0 +1,29 @@
+# values.yaml — declare the clusters this chart will template.
+#
+# TODO: replace with two entries — gold-01 and gold-02. See the rules
+# in ../README.md and the worked example in challenges/solution.md.
+#
+# Each cluster needs:
+#   * name           — must be exactly "gold-01" / "gold-02" (validate.sh greps for these)
+#   * k8sVersion     — v1.31.0
+#   * workerCount    — 1
+#   * cpCount        — 3                   # validate.sh asserts spec.replicas == 3 on gold-01-cp
+#   * labels         — must include env=gold and cni=calico on both;
+#                      gold-01 ALSO needs stack=ai (scopes Ollama to it)
+
+clusters: []
+#  - name: gold-01
+#    k8sVersion: v1.31.0
+#    workerCount: 1
+#    cpCount: 3
+#    labels:
+#      env: gold
+#      cni: calico
+#      stack: ai
+#  - name: gold-02
+#    k8sVersion: v1.31.0
+#    workerCount: 1
+#    cpCount: 3
+#    labels:
+#      env: gold
+#      cni: calico

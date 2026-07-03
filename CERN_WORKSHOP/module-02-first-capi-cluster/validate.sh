@@ -1,49 +1,29 @@
 #!/bin/bash
+# AUTO-GENERATED from module.yaml by tools/generate-validation.py
+# To regenerate: python3 tools/generate-validation.py module-02-first-capi-cluster
+source "$(dirname "$0")/../tools/validate-lib.sh"
+mod_header "Module 02 — First Workload Cluster"
 
-# Colors
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m'
+# --- Stage: Cluster Created ---
+require_resource cluster first-capi-cluster --label "Cluster resource exists"
+if [ "$ERRORS" -gt 0 ]; then exit_pending "Cluster Created: not ready"; fi
 
-echo "=== Validation Module 02 ==="
+# --- Stage: Cluster Provisioning ---
+require_field_equals --kind cluster --name first-capi-cluster --jsonpath '{.status.phase}' --expected "Provisioned" --in-progress-values "Provisioning|Pending" --label "Cluster phase is Provisioned"
+if [ "$ERRORS" -gt 0 ]; then exit_in_progress "Cluster Provisioning: in progress"; fi
 
-# 1. Check Pending
-if ! kubectl get cluster first-capi-cluster &> /dev/null; then
-    echo "Cluster 'first-capi-cluster' not found."
-    exit 100 # PENDING
+# --- Stage: Machines Running ---
+# Script check: At least 2 machines running
+if ! ( [ $(kubectl get machines | grep Running | wc -l) -ge 2 ] ) &>/dev/null; then
+    check_ko "At least 2 machines running"
+else
+    check_ok "At least 2 machines running"
 fi
+if [ "$ERRORS" -gt 0 ]; then exit_in_progress "Machines Running: in progress"; fi
 
-# 2. Check Progress (Provisioning)
-PHASE=$(kubectl get cluster first-capi-cluster -o jsonpath='{.status.phase}')
-if [ "$PHASE" == "Provisioning" ]; then
-    echo "Cluster is Provisioning..."
-    exit 101 # IN_PROGRESS
-fi
+# --- Stage: Kubeconfig & CNI ---
+ensure_kubeconfig --cluster first-capi-cluster --output first-capi-cluster.kubeconfig --label "Kubeconfig for first-capi-cluster"
+require_nodes_ready --kubeconfig first-capi-cluster.kubeconfig --min-count 2 --label "Nodes ready (CNI installed)"
+if [ "$ERRORS" -gt 0 ]; then exit_in_progress "Kubeconfig & CNI: in progress"; fi
 
-# 3. Check Machines (Are they Running?)
-MACHINES_RUNNING=$(kubectl get machines | grep Running | wc -l)
-if [ "$MACHINES_RUNNING" -lt 2 ]; then
-    echo "Machines are not yet Running ($MACHINES_RUNNING/2)..."
-    exit 101 # IN_PROGRESS
-fi
-
-# 4. Check Nodes Ready (CNI installed?)
-# We need to use the kubeconfig
-if [ ! -f "first-capi-cluster.kubeconfig" ]; then
-    # Try to fetch it
-    clusterctl get kubeconfig first-capi-cluster > first-capi-cluster.kubeconfig 2>/dev/null
-fi
-
-if [ ! -f "first-capi-cluster.kubeconfig" ]; then
-     echo "Kubeconfig not found/generated yet."
-     exit 101 # IN_PROGRESS
-fi
-
-NODES_READY=$(kubectl --kubeconfig=first-capi-cluster.kubeconfig get nodes | grep " Ready" | wc -l)
-if [ "$NODES_READY" -lt 2 ]; then
-    echo "Nodes are NotReady (CNI missing?)"
-    exit 101 # IN_PROGRESS (Because the student is likely installing CNI)
-fi
-
-echo -e "${GREEN}MODULE 02 VALIDATED!${NC}"
-exit 0
+finish "MODULE 02 VALIDATED!"

@@ -1,0 +1,49 @@
+title: "First Workload Cluster"
+order: 2
+difficulty: beginner
+estimated_minutes: 45
+description: "Create your first CAPI workload cluster using CAPD"
+prerequisites: [module-01-introduction]
+tags: [capi, capd, workload-cluster, cni]
+# CAPD workload cluster provisioning takes ~3-5 min on a warm host;
+# nodes_ready waits for Calico to settle. Bump from default 60s to 300s.
+timeout_seconds: 300
+
+stages:
+  - name: "Cluster Created"
+    on_fail: pending
+    checks:
+      - name: "Cluster resource exists"
+        type: resource_exists
+        kind: cluster
+        resource_name: first-capi-cluster
+
+  - name: "Cluster Provisioning"
+    on_fail: in_progress
+    checks:
+      - name: "Cluster phase is Provisioned"
+        type: field_equals
+        kind: cluster
+        resource_name: first-capi-cluster
+        jsonpath: "{.status.phase}"
+        expected: "Provisioned"
+        in_progress_values: ["Provisioning", "Pending"]
+
+  - name: "Machines Running"
+    on_fail: in_progress
+    checks:
+      - name: "At least 2 machines running"
+        type: script
+        run: "[ $(kubectl get machines | grep Running | wc -l) -ge 2 ]"
+
+  - name: "Kubeconfig & CNI"
+    on_fail: in_progress
+    checks:
+      - name: "Kubeconfig for first-capi-cluster"
+        type: ensure_kubeconfig
+        cluster_name: first-capi-cluster
+        output_file: first-capi-cluster.kubeconfig
+      - name: "Nodes ready (CNI installed)"
+        type: nodes_ready
+        kubeconfig: first-capi-cluster.kubeconfig
+        min_count: 2

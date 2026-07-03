@@ -1,0 +1,49 @@
+title: "Templating with Helm"
+order: 3
+difficulty: beginner
+estimated_minutes: 30
+description: "Use Helm templates and ClusterResourceSets for fleet management"
+prerequisites: [module-02-first-capi-cluster]
+tags: [helm, templating, clusterresourceset, fleet]
+
+stages:
+  - name: "Prerequisites"
+    on_fail: pending
+    checks:
+      - name: "helm CLI installed"
+        type: tool_exists
+        tool: helm
+      - name: "Management context active"
+        type: context_exists
+        context: kind-capi-mgmt
+      - name: "calico-cni ConfigMap created"
+        type: resource_exists
+        kind: configmap
+        resource_name: calico-cni
+
+  - name: "ClusterResourceSets created"
+    on_fail: in_progress
+    checks:
+      - name: "calico-crs"
+        type: resource_exists
+        kind: clusterresourceset
+        resource_name: calico-crs
+      - name: "security-policy CRS"
+        type: resource_exists
+        kind: clusterresourceset
+        resource_name: security-policy
+
+  - name: "Fleet provisioned"
+    on_fail: in_progress
+    checks:
+      - name: "blue/green/red clusters present"
+        type: resource_count
+        kind: clusters
+        pattern: "cluster-blue|cluster-green|cluster-red"
+        min_count: 3
+      - name: "all 3 fleet clusters Provisioned"
+        type: script
+        run: |
+          phases=$(kubectl get clusters -o json 2>/dev/null \
+            | jq -r '.items[] | select(.metadata.name | test("^cluster-(blue|green|red)$")) | .status.phase' 2>/dev/null)
+          test "$(echo "$phases" | grep -c Provisioned)" -ge 3

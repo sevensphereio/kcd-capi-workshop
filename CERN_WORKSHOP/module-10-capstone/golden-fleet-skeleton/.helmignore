@@ -1,0 +1,5 @@
+# Standard Helm packaging excludes
+.DS_Store
+*.swp
+.vscode/
+.idea/

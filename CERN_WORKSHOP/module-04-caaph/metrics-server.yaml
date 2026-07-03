@@ -1,0 +1,18 @@
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: metrics-server-blue
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: cluster-blue
+  repoURL: https://kubernetes-sigs.github.io/metrics-server/
+  chartName: metrics-server
+  version: 3.12.1
+  namespace: kube-system
+  options:
+    install:
+      createNamespace: true
+  valuesTemplate: |
+    args:
+      - --kubelet-insecure-tls

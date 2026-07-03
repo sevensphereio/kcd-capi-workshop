@@ -32,8 +32,8 @@ kind-capi-mgmt
 Typically, when you create a Kubernetes cluster (especially with CAPI), it is "uninitialized". It lacks a CNI (Network Interface) and nodes remain `NotReady`.
 `ClusterResourceSet` allows you to automatically apply YAML manifests (ConfigMaps/Secrets) to any cluster matching a label selector.
 
-### Modes of Operation
-There are two strategies defined by the `mode` field:
+### Strategies of Operation
+The `strategy` field accepts two values:
 
 1.  **ApplyOnce (Default):**
     *   **Behavior:** The resource is applied *only once* when the cluster is created.
@@ -48,7 +48,7 @@ There are two strategies defined by the `mode` field:
 
 ## Exercise 1: Zero-Touch CNI (ApplyOnce)
 
-We will set up Calico to be installed automatically on all our future clusters using the default `ApplyOnce` mode.
+We will set up Calico to be installed automatically on all our future clusters using the default `ApplyOnce` strategy.
 
 ### 1. Store the Manifest
 CAPI's `ClusterResourceSet` controller lives on the Management Cluster. It needs to access the YAML it will inject into workload clusters. We store the Calico YAML inside a Kubernetes **ConfigMap** so CAPI can read it.
@@ -118,7 +118,7 @@ configmap/company-banner created
 ```
 
 ### 2. Create the Strict CRS
-This CRS uses `mode: Reconcile`. It targets clusters labeled `env: prod`.
+This CRS uses `strategy: Reconcile`. It targets clusters labeled `env: prod`.
 
 the file will be called: crs-security.yaml
 ```yaml
@@ -239,6 +239,13 @@ NAME             DATA   AGE
 company-banner   1      5s
 ```
 
+> **⚠️ Troubleshooting: Banner not coming back?**
+> In some Docker-in-Docker environments, the CAPI controller might lose connectivity to the workload cluster's API server (timeout or connection refused).
+> If the banner does not appear after 2 minutes, force a reconnection by restarting the CAPI controller:
+> ```bash
+> kubectl delete pod -n capi-system -l cluster.x-k8s.io/provider=cluster-api
+> ```
+
 ### 4. Try modifying Calico (The ApplyOnce Test)
 If you were to delete Calico resources on `cluster-blue`, they **would not** come back automatically, because `calico-crs` uses `ApplyOnce`.
 
@@ -268,4 +275,9 @@ Run:
 Wait for the instructor to approve, then check this file again.
 
 ---
+## 🔮 What's Next?
+You now have a running fleet of clusters (`Blue`, `Green`, `Red`).
+However, they are empty.
+In **Module 04**, we will use **CAAPH** (Cluster API Addon Provider Helm) to centrally manage applications (like Metrics Server) across this entire fleet without leaving the Management Cluster.
+
 [Go to Module 04 ->](../module-04-caaph/)

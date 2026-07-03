@@ -226,4 +226,9 @@ Kind supports audit logging. Can you re-create the management cluster with Audit
 *Hint: Check the hints file via the request tool.*
 
 ---
+## 🔮 What's Next?
+You have successfully built the **Brain** of your operations.
+In **Module 02**, we will use this Management Cluster to spawn our first "Child" (Workload) cluster.
+Keep your terminal open and your environment variables set!
+
 [Go to Module 02 ->](../module-02-first-capi-cluster/)

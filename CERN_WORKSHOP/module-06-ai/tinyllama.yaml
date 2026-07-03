@@ -1,0 +1,14 @@
+apiVersion: ollama.ayaka.io/v1
+kind: Model
+metadata:
+  name: tinyllama
+  namespace: default
+spec:
+  image: tinyllama
+  replicas: 1
+  # kosmo-hybrid uses the local-path StorageClass installed via CAAPH
+  # (see local-path-hybrid.yaml). The operator's Model schema (v0.10.x) takes
+  # storageClassName + persistentVolume.accessMode; there is no size field.
+  storageClassName: local-path
+  persistentVolume:
+    accessMode: ReadWriteOnce

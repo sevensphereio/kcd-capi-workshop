@@ -1,0 +1,35 @@
+title: "Kosmotron Hosted Control Planes"
+order: 5
+difficulty: advanced
+estimated_minutes: 45
+description: "Deploy hosted control planes with Kosmotron and hybrid CAPI clusters"
+prerequisites: [module-01-introduction]
+tags: [kosmotron, hcp, hosted-control-plane, hybrid]
+
+stages:
+  - name: "Operator Ready"
+    on_fail: pending
+    checks:
+      - name: "Kosmotron (k0smotron) operator running"
+        type: pods_running
+        namespace: k0smotron
+        grep_status: Running
+        min_count: 1
+
+  - name: "Tenants Created"
+    on_fail: in_progress
+    checks:
+      - name: "Hosted control planes (tenant-a, tenant-b)"
+        type: script
+        run: "[ $(kubectl get clusters.k0smotron.io -n default 2>/dev/null | grep -E 'tenant-a|tenant-b' | wc -l) -ge 2 ]"
+
+  - name: "Hybrid Cluster"
+    on_fail: in_progress
+    checks:
+      - name: "Hybrid cluster exists"
+        type: resource_exists
+        kind: cluster
+        resource_name: kosmo-hybrid
+      - name: "Hybrid cluster has workers"
+        type: script
+        run: "kubectl get machinedeployment -l cluster.x-k8s.io/cluster-name=kosmo-hybrid -o jsonpath='{.items[0].metadata.name}' 2>/dev/null | grep -q ."

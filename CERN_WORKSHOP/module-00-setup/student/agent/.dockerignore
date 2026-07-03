@@ -1,0 +1,4 @@
+# The image bakes NO application code (agent.py comes from the runtime mount),
+# so keep the build context tiny — only the Dockerfile is needed.
+*
+!Dockerfile

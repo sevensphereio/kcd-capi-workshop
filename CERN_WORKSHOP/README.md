@@ -11,5 +11,6 @@ Click here if you are participating in the workshop. You will learn how to build
 
 ## 📂 Repository Structure
 
-*   `module-00-setup`: Automation scripts for environment bootstrapping.
-*   `module-01` to `module-09`: The core curriculum.
+*   `module-00-setup`: Automation scripts for environment bootstrapping
+    (instructor dashboard, student agent, Azure Terraform lab, common installers).
+*   `module-01` … `module-10`: The core curriculum (11 modules total).

@@ -1,0 +1,7 @@
+apiVersion: v2
+name: golden-fleet
+description: |
+  Capstone module — Helm chart that templates the gold-01 + gold-02
+  CAPI cluster pair (HA control planes, 1 worker each, env=gold).
+# TODO: bump version when iterating.
+version: 0.1.0

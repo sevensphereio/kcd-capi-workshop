@@ -1,32 +1,24 @@
 #!/bin/bash
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m'
+# AUTO-GENERATED from module.yaml by tools/generate-validation.py
+# To regenerate: python3 tools/generate-validation.py module-04-caaph
+source "$(dirname "$0")/../tools/validate-lib.sh"
+mod_header "Module 04 — Cluster API Add-on Provider Helm"
 
-echo "=== Validation Module 05 ==="
-ERRORS=0
+# --- Stage: Prerequisites ---
+require_tool helm --label "helm CLI installed"
+require_context kind-capi-mgmt --label "Management context active"
+require_crds helmchartproxies.addons.cluster.x-k8s.io helmreleaseproxies.addons.cluster.x-k8s.io --label "CAAPH CRDs installed"
+if [ "$ERRORS" -gt 0 ]; then exit_pending "Prerequisites: not ready"; fi
 
-# 1. HCP Objects
-if kubectl get helmchartproxy metrics-server-blue &> /dev/null && kubectl get helmchartproxy local-path-blue &> /dev/null; then
-    echo -e "${GREEN}[OK] HelmChartProxies found.${NC}"
-else
-    echo -e "${RED}[KO] Missing HelmChartProxies.${NC}"
-    ERRORS=$((ERRORS+1))
-fi
+# --- Stage: HelmChartProxies declared ---
+require_resource helmchartproxy metrics-server-blue --label "metrics-server-blue HelmChartProxy"
+require_resource helmchartproxy local-path-blue --label "local-path-blue HelmChartProxy"
+if [ "$ERRORS" -gt 0 ]; then exit_in_progress "HelmChartProxies declared: in progress"; fi
 
-# 2. Remote Check (Optional if kubeconfig exists)
-if [ -f cluster-blue.kubeconfig ]; then
-    if kubectl --kubeconfig=cluster-blue.kubeconfig get sc local-path &> /dev/null; then
-        echo -e "${GREEN}[OK] StorageClass found on Cluster Blue.${NC}"
-    else
-        echo -e "${RED}[KO] StorageClass 'local-path' missing on Cluster Blue.${NC}"
-        ERRORS=$((ERRORS+1))
-    fi
-fi
+# --- Stage: Add-ons reconciled on cluster-blue ---
+ensure_kubeconfig --cluster cluster-blue --output cluster-blue.kubeconfig --label "kubeconfig for cluster-blue cached"
+require_remote_pods --kubeconfig cluster-blue.kubeconfig --namespace kube-system --selector "app.kubernetes.io/name=metrics-server" --min-count 1 --label "metrics-server pods running on cluster-blue"
+require_remote_resource --kubeconfig cluster-blue.kubeconfig storageclass local-path --label "local-path StorageClass exists on cluster-blue"
+if [ "$ERRORS" -gt 0 ]; then exit_in_progress "Add-ons reconciled on cluster-blue: in progress"; fi
 
-if [ $ERRORS -eq 0 ]; then
-    echo -e "${GREEN}MODULE 05 VALIDATED!${NC}"
-    exit 0
-else
-    exit 1
-fi
+finish "MODULE 04 VALIDATED!"

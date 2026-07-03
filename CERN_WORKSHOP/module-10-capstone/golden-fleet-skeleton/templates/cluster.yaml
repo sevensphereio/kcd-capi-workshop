@@ -1,0 +1,15 @@
+# templates/cluster.yaml — emits the CAPI Cluster + DockerCluster +
+# KubeadmControlPlane + DockerMachineTemplate + MachineDeployment +
+# KubeadmConfigTemplate per entry in .Values.clusters.
+#
+# Modelled on module-03-templating/helm-fleet/templates/cluster.yaml.
+# TODO: copy that file here and tweak in two places:
+#   1. KubeadmControlPlane.spec.replicas → use {{ .cpCount }}
+#   2. metadata.labels on the Cluster → use {{- toYaml .labels | nindent 4 }}
+
+{{- range .Values.clusters }}
+{{- /* TODO: emit one Cluster + DockerCluster + KubeadmControlPlane +
+       DockerMachineTemplate + MachineDeployment + KubeadmConfigTemplate
+       block here, parameterised on .name, .k8sVersion, .workerCount,
+       .cpCount, .labels. See challenges/solution.md for the full form. */ -}}
+{{- end }}

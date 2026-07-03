@@ -1,50 +1,26 @@
 #!/bin/bash
+# AUTO-GENERATED from module.yaml by tools/generate-validation.py
+# To regenerate: python3 tools/generate-validation.py module-01-introduction
+source "$(dirname "$0")/../tools/validate-lib.sh"
+mod_header "Module 01 — Management Cluster Setup"
 
-# Colors
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m'
+# --- Stage: Prerequisites ---
+require_tool kind --label "kind CLI installed"
+require_context kind-capi-mgmt --label "Management cluster context exists"
+if [ "$ERRORS" -gt 0 ]; then exit_pending "Prerequisites: not ready"; fi
 
-echo "=== Validation Module 01 ==="
+# --- Stage: CAPI Initialization ---
+require_pods_running --pattern "capi|capd|cert-manager" --min-count 1 --label "CAPI/CAPD pods created"
+if [ "$ERRORS" -gt 0 ]; then exit_in_progress "CAPI Initialization: in progress"; fi
 
-# 0. Check Start (Pending)
-if ! command -v kind &> /dev/null; then
-    echo "Tools not installed yet."
-    exit 100 # PENDING
-fi
-
-if ! kubectl config get-contexts kind-capi-mgmt &> /dev/null; then
-    echo "Cluster 'capi-mgmt' does not exist yet."
-    exit 100 # PENDING
-fi
-
-# 1. Check Progress (Cluster exists, but pods initializing)
-# Check if CAPI pods are created but not ready
-POD_COUNT=$(kubectl get pods -A | grep -E 'capi|capd|cert-manager' | wc -l)
-
-if [ "$POD_COUNT" -eq 0 ]; then
-    echo "Cluster exists but CAPI is not initialized."
-    exit 101 # IN_PROGRESS
-fi
-
-# 2. Check Success
-RUNNING_PODS=$(kubectl get pods -A | grep -E 'capi|capd|cert-manager' | grep "Running" | wc -l)
-TOTAL_EXPECTED=8 # Approx
-
-if [ "$RUNNING_PODS" -ge 4 ]; then
-     # At least some pods running
-     if [ "$RUNNING_PODS" -ge "$TOTAL_EXPECTED" ]; then
-         echo -e "${GREEN}MODULE 01 VALIDATED!${NC}"
-         exit 0
-     else
-         echo "CAPI is initializing ($RUNNING_PODS/$TOTAL_EXPECTED pods running)..."
-         exit 101 # IN_PROGRESS
-     fi
+# --- Stage: CAPI Ready ---
+require_pods_running --pattern "capi|capd|cert-manager" --grep-status Running --min-count 8 --label "CAPI pods running"
+# Script check: No CrashLoopBackOff pods
+if ! ( ! kubectl get pods -A | grep CrashLoopBackOff ) &>/dev/null; then
+    check_ko "No CrashLoopBackOff pods"
 else
-    # Pods exist but failing/pending for too long?
-    # Simple check: If they are CrashLoopBackOff -> FAIL
-    if kubectl get pods -A | grep "CrashLoopBackOff"; then
-        exit 1 # FAIL
-    fi
-    exit 101 # IN_PROGRESS
+    check_ok "No CrashLoopBackOff pods"
 fi
+if [ "$ERRORS" -gt 0 ]; then exit_in_progress "CAPI Ready: in progress"; fi
+
+finish "MODULE 01 VALIDATED!"

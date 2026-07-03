@@ -1,0 +1,26 @@
+# Storage prep for module-06: the kosmo-hybrid cluster (a k0smotron HOSTED
+# control plane driving CAPD workers, created in module-05-kosmotron) has no
+# dynamic storage provisioner, but the Ollama Model needs a PVC for the model
+# weights. Install local-path-provisioner as the default StorageClass on
+# kosmo-hybrid via CAAPH — kosmo-hybrid IS a labeled CAPI Cluster, so the same
+# HelmChartProxy pattern works; we just retarget the clusterSelector.
+#
+#   kubectl apply -f local-path-hybrid.yaml
+#
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: local-path-hybrid
+spec:
+  clusterSelector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: kosmo-hybrid
+  repoURL: https://charts.containeroo.ch
+  chartName: local-path-provisioner
+  version: 0.0.30
+  options:
+    install:
+      createNamespace: true
+  valuesTemplate: |
+    storageClass:
+      defaultClass: true

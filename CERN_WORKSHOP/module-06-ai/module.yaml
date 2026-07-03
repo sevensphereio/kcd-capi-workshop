@@ -1,0 +1,39 @@
+title: "AI Workloads with Ollama"
+order: 6
+difficulty: intermediate
+estimated_minutes: 30
+description: "Deploy Ollama operator and TinyLlama model on the kosmo-hybrid hosted-control-plane cluster (k0smotron) from module-05"
+prerequisites: [module-05-kosmotron]
+tags: [ai, ollama, llm, remote-check]
+# TinyLlama is a ~600MB image that the operator pulls on first run and
+# downloads ~700MB of model weights into the PVC; ~5-10 min on a fast link.
+timeout_seconds: 600
+
+stages:
+  - name: "Prerequisites"
+    on_fail: pending
+    checks:
+      - name: "kubeconfig for kosmo-hybrid cached"
+        type: ensure_kubeconfig
+        cluster_name: kosmo-hybrid
+        output_file: kosmo-hybrid.kubeconfig
+
+  - name: "Ollama operator deployed"
+    on_fail: in_progress
+    checks:
+      - name: "Ollama operator pod Running on kosmo-hybrid"
+        type: remote_pods
+        kubeconfig: kosmo-hybrid.kubeconfig
+        namespace: ollama-operator-system
+        grep_status: Running
+        min_count: 1
+
+  - name: "TinyLlama model deployed"
+    on_fail: in_progress
+    checks:
+      - name: "TinyLlama Model pod Running on kosmo-hybrid"
+        type: remote_pods
+        kubeconfig: kosmo-hybrid.kubeconfig
+        selector: "model.ollama.ayaka.io/name=tinyllama"
+        grep_status: Running
+        min_count: 1

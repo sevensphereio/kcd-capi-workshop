@@ -1,0 +1,48 @@
+# Containerized student agent — the default run path (the capi-agent systemd
+# service is the opt-in alternative). Values come from the sibling `.env` file,
+# which run-agent-docker.sh
+# generates (or you can write it by hand). Bring up with:
+#
+#     docker compose up -d --build
+#
+# Requires host networking because the kind management cluster's kubeconfig
+# points at 127.0.0.1:<port> and CAPD workload clusters live on the Docker
+# bridge — both are reachable only from the host network namespace.
+services:
+  capi-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: capi-workshop-agent:latest
+    container_name: capi-agent
+    # Reach 127.0.0.1:<port> (kind mgmt) and 172.x (CAPD) kubeconfig endpoints.
+    network_mode: host
+    # Run as the student's UID:GID so kubeconfigs / reveal files / validation
+    # output written into the repo mount stay student-owned (not root).
+    user: "${AGENT_UID:-1000}:${AGENT_GID:-1000}"
+    restart: unless-stopped
+    environment:
+      # /api/report endpoint on the instructor dashboard.
+      DASHBOARD_URL: "${DASHBOARD_URL:?set DASHBOARD_URL in .env}"
+      # Per-student token minted by the instructor (never the master token).
+      DASHBOARD_API_TOKEN: "${DASHBOARD_API_TOKEN:?set DASHBOARD_API_TOKEN in .env}"
+      # Deterministic student id (matches the token). Falls back to FQDN if empty.
+      STUDENT_ID: "${STUDENT_ID:-}"
+      # The repo lives at /workshop inside the container (see volumes below).
+      WORKSHOP_ROOT: "/workshop"
+      KUBECONFIG: "/home/agent/.kube/config"
+      LEADERBOARD_OPT_IN: "${LEADERBOARD_OPT_IN:-false}"
+      # Silence the plaintext-http warning only if you accept cleartext tokens.
+      DASHBOARD_INSECURE_HTTP: "${DASHBOARD_INSECURE_HTTP:-false}"
+    volumes:
+      # The workshop checkout — RW because the agent writes fetched kubeconfigs,
+      # validation_output/, and unlocked reveal markdown into it.
+      - "${WORKSHOP_ROOT_HOST:?set WORKSHOP_ROOT_HOST in .env}:/workshop"
+      # The student's kubeconfig(s) — read-only; validate scripts only read.
+      - "${KUBE_DIR:-${HOME}/.kube}:/home/agent/.kube:ro"
+      # Persist reveal state (~/.capi-agent/reveals.json) so the README banner
+      # isn't re-appended on every container restart.
+      - "capi-agent-home:/home/agent"
+
+volumes:
+  capi-agent-home:

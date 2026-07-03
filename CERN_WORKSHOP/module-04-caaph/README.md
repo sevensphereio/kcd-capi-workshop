@@ -83,6 +83,7 @@ spec:
   repoURL: https://kubernetes-sigs.github.io/metrics-server/
   chartName: metrics-server
   version: 3.12.1
+  namespace: kube-system
   options:
     install:
       createNamespace: true
@@ -120,7 +121,7 @@ spec:
   clusterSelector:
     matchLabels:
       cluster.x-k8s.io/cluster-name: cluster-blue
-  repoURL: https://charts.rancher.io
+  repoURL: https://charts.containeroo.ch
   chartName: local-path-provisioner
   version: 0.0.30
   options:
@@ -201,4 +202,8 @@ Can you use CAAPH to inject a Docker Registry Secret (imagePullSecret) into the 
 *Hint: Check the hints file via the request tool.*
 
 ---
-[Go to Module 05 ->](../module-05-ai/)
+## 🔮 What's Next?
+Your fleet has utilities (Metrics, Storage).
+In **Module 05**, we will provision **Kosmotron Hosted Control Planes** — running tenant control planes as pods and attaching a hybrid CAPI worker.
+
+[Go to Module 05 ->](../module-05-kosmotron/)
